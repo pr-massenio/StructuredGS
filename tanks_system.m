@@ -1,7 +1,7 @@
 clear all, close all 
 
 %% 5 tanks system params
-g   = 9.8;                 % Gravity acceleration
+g   = 9.8;               % Gravity acceleration
 at  = 2.5*2.5*pi;        % Cross sectional area of cylinders
 Aij = 0.15*0.15*pi;      % Orifice area between tanks 
 Aii = 0.05*0.05*pi;      % Outlet orifice area 
@@ -190,10 +190,10 @@ Lambda_temp = Lambda_struct;
 
 while 1
 
-    % Find zero lambda_ij and q_ij and set corresponding variables to zero
+    % Find zero lambda_ij and x_ij and set corresponding variables to zero
     for i=1:numel(eq)
-        sv = symvar(eq(i)); % Variables in each equation
-        if length(sv) == 1   % If is one variable then set corresponding variables to zero 
+        sv = symvar(eq(i));  % Variables in each equation
+        if length(sv) == 1   % If one variable then set corresponding variables to zero 
             hsl = has(Lambda,sv(1)); 
             hsq = has(X,sv(1)); 
             if nnz(hsl) > 0
