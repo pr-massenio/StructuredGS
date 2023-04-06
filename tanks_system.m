@@ -1,7 +1,7 @@
 clear all, close all 
 
 %% 5 tanks system params
-g   = 9.8;               % Gravity acceleration
+g   = 9.8;                 % Gravity acceleration
 at  = 2.5*2.5*pi;        % Cross sectional area of cylinders
 Aij = 0.15*0.15*pi;      % Orifice area between tanks 
 Aii = 0.05*0.05*pi;      % Outlet orifice area 
@@ -120,15 +120,15 @@ Lambda = sym('l',nnz(K_struct));
 % Define equation 
 eq = L*kron(eye(nnz(K_struct)),X)-L*kron(Lambda,eye(n));
 % Find structure of X and Lambda
-[X_struct, Lambda_struct] = findStruct(X,Lambda,eq);
-Xs = zeros(n,n);
-Xs(find(X_struct))=1;
+% [X_struct, Lambda_struct] = findStruct(X,Lambda,eq);
+% Xs = zeros(n,n);
+% Xs(find(X_struct))=1;
 
-% Xs = [1     1     0     0     0
-%       0     1     0     0     0
-%       0     0     1     0     0
-%       0     0     1     1     0
-%       0     1     0     0     1];
+Xs = [1     1     0     0     0
+      0     1     0     0     0
+      0     0     1     0     0
+      0     0     1     1     0
+      0     1     0     0     1];
 X = sdpvar(n,n,'full').*Xs;
 
 % Lyapunov function matrix P
@@ -136,25 +136,24 @@ Q = sdpvar(n,n,'symmetric');
 
 %% LMI Problem
 eps = 1e-7; % Tolerance value
-LMIoptions = sdpsettings('solver','Sedumi','Verbose',1); 
+LMIoptions = sdpsettings('solver','Sedumi','Verbose',1,'Sedumi.eps',1e-8); 
 
 LMI = [];
-LMI = [LMI; Q >= eps*eye(n)]; % Positive definiteness of P
+LMI = [LMI; Q >= eps.*eye(n,n)]; % Positive definiteness of P
 
-alpha = 0.5;
-
+alpha = 1.1;
+b=1.3;
 for i = 1:length(paramCombs)
     % Vertex evaluation
     v_i    = paramCombs(i,:);  % Current vertex
-    A_i    = Ap(v_i);          % Current A    
-    
+    A_i    = Ap(v_i);          % Current A      
     BF_i   = B*F_0 + ...
              B*F_1*v_i(1)+ B*F_2*v_i(2)+ B*F_3*v_i(3) + B*F_4*v_i(4) + B*F_5*v_i(5) + ...
              B*F_6*v_i(6)+ B*F_7*v_i(7)+ B*F_8*v_i(8) + B*F_9*v_i(9);
 
      % Structured feedback LMI
-     M_i    = [A_i*X+X'*A_i'+BF_i+BF_i' + Q.*(2*alpha),      A_i*X+BF_i-X'+Q;
-              X'*A_i'+BF_i'-X+Q,             -X-X'] <=-eps*eye(2*n); 
+     St_LMI = [b.*(A_i*X+BF_i) A_i*X+BF_i; -b.*X -X];
+     M_i    = St_LMI + St_LMI' + [(2*alpha).*Q Q; Q zeros(n,n)] <=-eps*eye(2*n); 
 
     LMI = [LMI; M_i]; 
 end
@@ -176,9 +175,6 @@ K_1 = F_1/X; K_2 = F_2/X; K_3 = F_3/X;
 K_4 = F_4/X; K_5 = F_5/X; K_6 = F_6/X; 
 K_7 = F_7/X; K_8 = F_8/X; K_9 = F_9/X;
 
-
-
-
 function [X_struct, Lambda_struct] = findStruct(X,Lambda,eq)
 % New X and Lambda
 X_struct = X;
@@ -190,10 +186,10 @@ Lambda_temp = Lambda_struct;
 
 while 1
 
-    % Find zero lambda_ij and x_ij and set corresponding variables to zero
+    % Find zero lambda_ij and q_ij and set corresponding variables to zero
     for i=1:numel(eq)
-        sv = symvar(eq(i));  % Variables in each equation
-        if length(sv) == 1   % If one variable then set corresponding variables to zero 
+        sv = symvar(eq(i)); % Variables in each equation
+        if length(sv) == 1   % If is one variable then set corresponding variables to zero 
             hsl = has(Lambda,sv(1)); 
             hsq = has(X,sv(1)); 
             if nnz(hsl) > 0
